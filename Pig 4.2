@@ -1,0 +1,182 @@
+emp_name = LOAD 'name' USING PigStorage(',') AS  (fname:chararray,lname:chararray);
+dump emp_name
+(chandra,agarwal)
+(manish,gupta)
+(ravi,jha)
+
+emp = LOAD 'employee_details.txt' USING PigStorage(',') AS (emp_id:int, empname:chararray, emp_salary:int);
+dump emp
+(101,Amitabh,20000)
+(102,Shahrukh,10000)
+(103,Akshay,11000)
+(104,Anubhav,5000)
+(105,Pawan,2500)
+(106,Aamir,25000)
+(107,Salman,17500)
+(108,Ranbir,14000)
+(109,Katrina,1000)
+(110,Priyanka,2000)
+(111,Tushar,500)
+(112,Ajay,5000)
+(113,Jubeen,1000)
+(114,Madhuri,2000)
+-------------------------
+--CONCAT
+------------------
+full_name = FOREACH emp_name generate CONCAT(fname,lname);
+(chandraagarwal)
+(manishgupta)
+(ravijha)
+
+full_name = FOREACH emp_name generate CONCAT(fname,' ', lname) AS fullname;
+
+(chandra agarwal)
+(manish gupta)
+(ravi jha)
+
+------------------
+-- Tokenize
+----------------
+full_name_tokenize= FOREACH full_name Generate TOKENIZE(fullname);
+dump full_name_tokenize
+({(chandra),(agarwal)})
+({(manish),(gupta)})
+({(ravi),(jha)})
+
+--------------------------------
+--SUM
+------------------------------
+
+sal = foreach emp generate emp_salary as salary;
+dump sal
+(20000)
+(10000)
+(11000)
+(5000)
+(2500)
+(25000)
+(17500)
+(14000)
+(1000)
+(2000)
+(500)
+(5000)
+(1000)
+(2000)
+
+sum_sal = foreach (group sal all) generate SUM(sal.salary);
+dump sum_sal
+(116500)
+
+-----------------------------------
+--MAX, MIN
+---------------------------------
+max_min_sal = foreach (group sal all) generate MAX(sal.salary) as max_sal,MIN(sal.salary) as min_sal ;
+dump max_min_sal
+(25000,500)
+
+---------------------------------
+--LIMIT
+---------------------------
+emp_3 = limit emp 3;
+dump emp_3
+(101,Amitabh,20000)
+(102,Shahrukh,10000)
+(103,Akshay,11000)
+
+-------------------------------------------------
+--STORE
+---------------------------
+grunt> store emp_5 into 'store_3';
+
+-- on UNIX command line
+[acadgild@localhost pig]$ pwd
+/home/acadgild/pig
+[acadgild@localhost pig]$ ls
+employee_details.txt   name                   store_3
+employee_expenses.txt  pig_1509799848634.log
+[acadgild@localhost pig]$ cd store_3
+[acadgild@localhost store_3]$ ls
+part-r-00000  _SUCCESS
+[acadgild@localhost store_3]$ cat part*
+101	Amitabh	20000
+102	Shahrukh	10000
+103	Akshay	11000
+[acadgild@localhost store_3]$ 
+
+------------------------
+--Distinct
+--------------------
+sal = foreach emp generate emp_salary as salary;
+dump sal
+(20000)
+(10000)
+(11000)
+(5000)
+(2500)
+(25000)
+(17500)
+(14000)
+(1000)
+(2000)
+(500)
+(5000)
+(1000)
+(2000)
+
+distinct_sal = distinct sal;
+dump distinct_sal
+(500)
+(1000)
+(2000)
+(2500)
+(5000)
+(10000)
+(11000)
+(14000)
+(17500)
+(20000)
+(25000)
+------------------------------------------------------
+--IsEmpty
+--------------------------------------------
+emp_name = LOAD 'name' USING PigStorage(',') AS  (id:int,fname:chararray,lname:chararray,salary:int);
+dump emp_name
+(201,chandra,agarwal,500)
+(202,manish,gupta,2500)
+(203,ravi,jha,11001)
+
+
+grunt> cogroup_sal= COGROUP emp by emp_salary, emp_name by salary;
+
+grunt> describe cogroup_sal
+cogroup_sal: {group: int,emp: {(emp_id: int,empname: chararray,emp_salary: int)},emp_name: {(id: int,fname: chararray,lname: chararray,salary: int)}}
+
+grunt> dump cogroup_sal
+(500,{(111,Tushar,500)},{(201,chandra,agarwal,500)})
+(1000,{(113,Jubeen,1000),(109,Katrina,1000)},{})
+(2000,{(110,Priyanka,2000),(114,Madhuri,2000)},{})
+(2500,{(105,Pawan,2500)},{(202,manish,gupta,2500)})
+(5000,{(112,Ajay,5000),(104,Anubhav,5000)},{})
+(10000,{(102,Shahrukh,10000)},{})
+(11000,{(103,Akshay,11000)},{})
+(11001,{},{(203,ravi,jha,11001)})
+(14000,{(108,Ranbir,14000)},{})
+(17500,{(107,Salman,17500)},{})
+(20000,{(101,Amitabh,20000)},{})
+(25000,{(106,Aamir,25000)},{})
+
+isempty_bag = filter cogroup_sal by IsEmpty(emp);
+grunt> dump isempty_bag
+(11001,{},{(203,ravi,jha,11001)})
+           --------------------------
+isnotempty_bag = filter cogroup_sal by (NOT IsEmpty(emp) AND NOT IsEmpty(emp_name)) ;
+dump isnotempty_bag
+(500,{(111,Tushar,500)},{(201,chandra,agarwal,500)})
+(2500,{(105,Pawan,2500)},{(202,manish,gupta,2500)})
+
+
+
+
+
+
