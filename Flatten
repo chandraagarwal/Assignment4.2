@@ -1,0 +1,48 @@
+-- loading file
+grunt> lines = load 'wordcount' as (line:chararray);
+grunt> dump lines
+(Tony is 10 years old.)
+(His father works in a factory.)
+(His mother is a housewife.)
+(He has a little sister aged 5.)
+
+-- split line into words using Tokenize
+grunt> wordsinline = foreach lines generate TOKENIZE(line) as words; 
+grunt> dump wordsinline
+({(Tony),(is),(10),(years),(old.)})
+({(His),(father),(works),(in),(a),(factory.)})
+({(His),(mother),(is),(a),(housewife.)})
+({(He),(has),(a),(little),(sister),(aged),(5.)})
+
+grunt> describe wordsinline
+wordsinline: {words: {tuple_of_tokens: (token: chararray)}}
+
+-- Flatten the bag
+grunt> allwords = foreach wordsinline generate FLATTEN(words) as word;
+grunt> describe allwords
+allwords: {word: chararray}
+grunt> dump allwords
+(Tony)
+(is)
+(10)
+(years)
+(old.)
+(His)
+(father)
+(works)
+(in)
+(a)
+(factory.)
+(His)
+(mother)
+(is)
+(a)
+(housewife.)
+(He)
+(has)
+(a)
+(little)
+(sister)
+(aged)
+(5.)
+
